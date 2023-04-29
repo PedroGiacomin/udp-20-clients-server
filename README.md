@@ -15,14 +15,9 @@ Eu esperava que houvesse algum problema com a resposta do servidor, como um atra
 
 Acredito que isso tenha acontecido porque são 20 enlaces cabeados diferentes, e isso significaria que o servidor tem 20 "placas Ethernet" e 20 IPs diferentes. O servidor então atua como um roteador ou um switch.
 
-Uma visão mais realista é considerar apenas 1 IP para esse servidor, mas não sei se é possível fazer isso usando PointToPoint.
-
-## Estou entendendo isso errado
-Coloquei 20 enlaces cabeados, o que significa que tenho:
+Uma visão mais realista é considerar apenas 1 IP para esse servidor, mas não sei se é possível fazer isso usando PointToPoint. Coloquei 20 enlaces cabeados, o que significa que tenho:
 - 1 placa de rede em cada um dos 20 clientes.
 - 1 cabo ligando cada cliente ao servidor 
-- 20 placas de rede no servidor.
+- 20 placas de rede no servidor, cada uma tem sim um só IP
 
-Porém, não significa que preciso de 1 endereço de IP para cada placa de rede, isso faria com que eu tivesse 20 subredes, e meu servidor atuaria basicamente como um roteador, ou um switch, tendo 20 endereços de IP (um para cada interface). 
-
-O que eu tenho é apenas 1 rede com 21 dispositivos, sendo 1 deles o servidor, com apenas 1 IP. Assim, talvez, realmente tenha problema de atraso.
+Para fazer desse outro jeito preciso usar um BUS (para conexão com fio) ou o Wi-Fi (para sem fio).

@@ -34,7 +34,7 @@ NS_LOG_COMPONENT_DEFINE ("Udp20ClientServer");
 
 int main (int argc, char *argv[]){
     // --- VARIAVEIS --- //
-    uint32_t numClients = 20;
+    uint32_t numClients = 3;
 
     // --- LOGGING --- //
     LogComponentEnable ("Udp20ClientServer", LOG_LEVEL_ALL);
@@ -66,13 +66,6 @@ int main (int argc, char *argv[]){
     // --- INSTALA O CANAL NOS NODES --- //
     // Aqui eh como instalar um cabo entre cada um dos clientes e o servidor, entao serao 20 canais 
     //  (comecando com 2)
-    
-    NodeContainer SC0(serverNode, clientNodes.Get(0)); //novo agrupamento de nodes com: server -> pos 0; client -> pos 1
-    NetDeviceContainer serverclient0 = pointToPoint.Install(SC0);
-    
-    NS_LOG_INFO("Install channel server-client 1");
-    NodeContainer SC1(serverNode, clientNodes.Get(1)); 
-    NetDeviceContainer serverclient1 = pointToPoint.Install(SC1);
 
     // Cria <numclients> agrupamentos de 2 nodes com: server -> node 0; client[i] -> node 1
     std::vector<NodeContainer> nodeAdjacencyList (numClients);
