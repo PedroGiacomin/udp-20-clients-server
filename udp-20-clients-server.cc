@@ -34,7 +34,7 @@ NS_LOG_COMPONENT_DEFINE ("Udp20ClientServer");
 
 int main (int argc, char *argv[]){
     // --- VARIAVEIS --- //
-    uint32_t numClients = 2;
+    uint32_t numClients = 20;
 
     // --- LOGGING --- //
     LogComponentEnable ("Udp20ClientServer", LOG_LEVEL_ALL);
