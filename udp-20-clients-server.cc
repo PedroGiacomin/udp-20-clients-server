@@ -75,8 +75,10 @@ int main (int argc, char *argv[]){
 
     // Instala o enlace em cada par de (server, client[i]) criado
     std::vector<NetDeviceContainer> deviceAdjacencyList (numClients);
+    //NetDeviceContainer allDevices;
     for(uint32_t i=0; i<deviceAdjacencyList.size (); ++i){
         deviceAdjacencyList[i] = pointToPoint.Install(nodeAdjacencyList[i]); 
+        //allDevices.Add(deviceAdjacencyList[i]); //Device container que contem todas as adjacencias
     }
     
     // --- ENDERECAMENTO IP --- //
@@ -85,15 +87,15 @@ int main (int argc, char *argv[]){
     //  (comecando com 2)
     NS_LOG_INFO ("Set and Assign IP Addresses.");
     Ipv4AddressHelper adress;
-    std::vector<Ipv4InterfaceContainer> interfaces (numClients);
+    adress.SetBase("10.1.1.0", "255.255.255.0");
+    
+    Ipv4InterfaceContainer interface;
+    interface = adress.Assign(deviceAdjacencyList[0].Get(0)); // Atribui um IP ao servidor
     for(uint32_t i=0; i<deviceAdjacencyList.size (); ++i){
-        std::ostringstream subnet;
-        subnet<<"10.1."<<i+1<<".0";
-        adress.SetBase(subnet.str ().c_str (), "255.255.255.0");
-        interfaces[i] = adress.Assign(deviceAdjacencyList[i]); //interface i == server 10.1.[i].1 - client[i] 10.1.[i].2
+        interface.Add(adress.Assign(deviceAdjacencyList[i].Get(1))); //Atribui um IP a cada client
     }
 
-    // --- APLICACAO --- //
+    // // --- APLICACOES --- //
     NS_LOG_INFO ("Create server application.");
     uint16_t serverPort = 9;  // porta para ECHO
     UdpEchoServerHelper server (serverPort);
@@ -107,28 +109,33 @@ int main (int argc, char *argv[]){
     Time interPacketInterval = Seconds (1.);
 
     //Uma aplicacao por cliente
-    std::vector<ApplicationContainer> clientApp(numClients);
-    for(uint32_t i=0; i<clientApp.size (); ++i){
-        UdpEchoClientHelper clientHelper(interfaces[i].GetAddress(0), serverPort); //pega o endereco ip do servidor naquela subrede
-        clientHelper.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
-        clientHelper.SetAttribute ("Interval", TimeValue (interPacketInterval));
-        clientHelper.SetAttribute ("PacketSize", UintegerValue (packetSize));
-        clientApp[i] = clientHelper.Install(clientNodes.Get(i)); //instala app no cliente i
-        clientApp[i].Start(Seconds(2.0));
-        clientApp[i].Stop(Seconds(10.0));
-    }
-    
-    // --- NETANIM --- //
-    NS_LOG_INFO("Set animation.");
-    AnimationInterface anim ("udp-20-clients-server-anim.xml");
+    UdpEchoClientHelper clientHelper(interface.GetAddress(0), serverPort); //endereco 0 eh o endereco do servidor
+    clientHelper.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
+    clientHelper.SetAttribute ("Interval", TimeValue (interPacketInterval));
+    clientHelper.SetAttribute ("PacketSize", UintegerValue (packetSize));
+    // std::vector<ApplicationContainer> clientApp(numClients);
+    // for(uint32_t i=0; i<clientApp.size (); ++i){
+        
+    //     clientApp[i] = clientHelper.Install(clientNodes.Get(i)); //instala app no cliente i
+        // clientApp[0].Start(Seconds(2.0));
+        // clientApp[0].Stop(Seconds(10.0)); 
+    // }
+    ApplicationContainer clientApp = clientHelper.Install(clientNodes.Get(0));
+    clientApp.Start(Seconds(2.0));
+    clientApp.Stop(Seconds(10.0)); //  a principio apenas um client se comunica
 
-    anim.SetConstantPosition(serverNode.Get(0), 300, 300); //node 0
-    uint32_t x = 0, y = 0;
-    for(uint32_t i=0; i<numClients; ++i){
-        x = (200 + 10*i);
-        y = (i <= 9) ? (300 + 10*i) : (490 - 10*i);
-        anim.SetConstantPosition(clientNodes.Get(i), x, y); //gera uma semi-circunferencia 
-    }
+    
+    // // --- NETANIM --- //
+    // NS_LOG_INFO("Set animation.");
+    // AnimationInterface anim ("udp-20-clients-server-anim.xml");
+
+    // anim.SetConstantPosition(serverNode.Get(0), 300, 300); //node 0
+    // uint32_t x = 0, y = 0;
+    // for(uint32_t i=0; i<numClients; ++i){
+    //     x = (200 + 10*i);
+    //     y = (i <= 9) ? (300 + 10*i) : (490 - 10*i);
+    //     anim.SetConstantPosition(clientNodes.Get(i), x, y); //gera uma semi-circunferencia 
+    // }
 
     // --- EXECUCAO --- //
     NS_LOG_INFO("Run simulation.");
