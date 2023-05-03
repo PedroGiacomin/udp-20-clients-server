@@ -90,7 +90,7 @@ int main (int argc, char *argv[]){
     adress.SetBase("10.1.1.0", "255.255.255.0");
     
     Ipv4InterfaceContainer interface;
-    interface = adress.Assign(deviceAdjacencyList[0].Get(0)); // Atribui um IP ao servidor
+    interface = adress.Assign(deviceAdjacencyList[1].Get(0)); // Atribui um IP ao servidor
     for(uint32_t i=0; i<deviceAdjacencyList.size (); ++i){
         interface.Add(adress.Assign(deviceAdjacencyList[i].Get(1))); //Atribui um IP a cada client
     }
@@ -108,22 +108,19 @@ int main (int argc, char *argv[]){
     uint32_t maxPacketCount = 1;
     Time interPacketInterval = Seconds (1.);
 
-    //Uma aplicacao por cliente
+    //Atributos da aplicacao
     UdpEchoClientHelper clientHelper(interface.GetAddress(0), serverPort); //endereco 0 eh o endereco do servidor
     clientHelper.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
     clientHelper.SetAttribute ("Interval", TimeValue (interPacketInterval));
     clientHelper.SetAttribute ("PacketSize", UintegerValue (packetSize));
-    // std::vector<ApplicationContainer> clientApp(numClients);
-    // for(uint32_t i=0; i<clientApp.size (); ++i){
-        
-    //     clientApp[i] = clientHelper.Install(clientNodes.Get(i)); //instala app no cliente i
-        // clientApp[0].Start(Seconds(2.0));
-        // clientApp[0].Stop(Seconds(10.0)); 
-    // }
-    ApplicationContainer clientApp = clientHelper.Install(clientNodes.Get(0));
-    clientApp.Start(Seconds(2.0));
-    clientApp.Stop(Seconds(10.0)); //  a principio apenas um client se comunica
 
+    //UMa aplicacao por cliente, todas comecam ao mesmo tempo
+    std::vector<ApplicationContainer> clientApp(numClients);
+    for(uint32_t i=0; i<clientApp.size (); ++i){
+        clientApp[i] = clientHelper.Install(clientNodes.Get(i)); //instala app no cliente i
+        clientApp[i].Start(Seconds(2.0*(i+1)));
+        clientApp[i].Stop(Seconds(3.0*(i+1))); 
+    }
     
     // // --- NETANIM --- //
     // NS_LOG_INFO("Set animation.");
