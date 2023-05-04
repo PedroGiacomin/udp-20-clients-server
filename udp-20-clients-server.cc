@@ -44,12 +44,12 @@ int main (int argc, char *argv[]){
     // --- CRIACAO DOS NODES --- //
     // Agrupa os nodes em clientes e servidor, e tambem em todos os nodes
     NS_LOG_INFO("Create nodes");
-    NodeContainer serverNode;
-    NodeContainer clientNodes;
-    serverNode.Create(1);
-    clientNodes.Create(numClients);
+    // NodeContainer serverNode;
+    // NodeContainer clientNodes;
+    // serverNode.Create(1);
+    // clientNodes.Create(numClients);
 
-    NodeContainer allNodes(serverNode, clientNodes);
+    NodeContainer allNodes(numClients + 1); // node 0 -> server
 
     // --- PROTOCOLOS DA INTERNET --- //
     NS_LOG_INFO("Install internet protocols stack");
@@ -64,42 +64,25 @@ int main (int argc, char *argv[]){
     pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
     
     // --- INSTALA O CANAL NOS NODES --- //
-    // Aqui eh como instalar um cabo entre cada um dos clientes e o servidor, entao serao 20 canais 
-    //  (comecando com 2)
-
-    // Cria <numclients> agrupamentos de 2 nodes com: server -> node 0; client[i] -> node 1
-    std::vector<NodeContainer> nodeAdjacencyList (numClients);
-    for(uint32_t i=0; i<nodeAdjacencyList.size (); ++i){
-        nodeAdjacencyList[i] = NodeContainer (serverNode, clientNodes.Get (i)); //novo agrupamento de 2 nodes com: 
-    }
-
-    // Instala o enlace em cada par de (server, client[i]) criado
-    std::vector<NetDeviceContainer> deviceAdjacencyList (numClients);
-    //NetDeviceContainer allDevices;
-    for(uint32_t i=0; i<deviceAdjacencyList.size (); ++i){
-        deviceAdjacencyList[i] = pointToPoint.Install(nodeAdjacencyList[i]); 
-        //allDevices.Add(deviceAdjacencyList[i]); //Device container que contem todas as adjacencias
+    // Instala o enlace em cada par de (node[i+1] [client], node[0] [server]) criado e ja salva no NetDeviceContainer
+    NetDeviceContainer allDevices;
+    for(uint32_t i=0; i<numClients; ++i){
+        allDevices.Add(pointToPoint.Install(allNodes.Get(0), allNodes.Get(i+1))); 
     }
     
     // --- ENDERECAMENTO IP --- //
-    // Aqui eh um endereco de IP por 'placa de rede cabeada', entao cada cliente tem um IP e o servidor tem 20 IPs
-    // Sao 20 subredes tambem, entao sao 20 interfaces => 20 IPs base. 
-    //  (comecando com 2)
+    // UM endereco de IP para cada dispositivo na rede
     NS_LOG_INFO ("Set and Assign IP Addresses.");
     Ipv4AddressHelper adress;
     adress.SetBase("10.1.1.0", "255.255.255.0");
     
-    Ipv4InterfaceContainer interface;
-    interface = adress.Assign(deviceAdjacencyList[1].Get(0)); // Atribui um IP ao servidor
-    for(uint32_t i=0; i<deviceAdjacencyList.size (); ++i){
-        interface.Add(adress.Assign(deviceAdjacencyList[i].Get(1))); //Atribui um IP a cada client
-    }
+    Ipv4InterfaceContainer interface = adress.Assign(allDevices); // Atribui os IPs
 
     // // --- APLICACOES --- //
     NS_LOG_INFO ("Create server application.");
     uint16_t serverPort = 9;  // porta para ECHO
-    UdpEchoServerHelper server (serverPort);
-    ApplicationContainer serverApp = server.Install(serverNode.Get(0)); //instala servidor nesse node
+    UdpEchoServerHelper server(serverPort);
+    ApplicationContainer serverApp = server.Install(allNodes.Get(0)); //instala a aplicacao servidor no node[0]
     serverApp.Start(Seconds(1.0));
     serverApp.Stop(Seconds(10.0));
 
@@ -115,24 +98,26 @@ int main (int argc, char *argv[]){
     clientHelper.SetAttribute ("PacketSize", UintegerValue (packetSize));
 
     //UMa aplicacao por cliente, todas comecam ao mesmo tempo
-    std::vector<ApplicationContainer> clientApp(numClients);
-    for(uint32_t i=0; i<clientApp.size (); ++i){
-        clientApp[i] = clientHelper.Install(clientNodes.Get(i)); //instala app no cliente i
-        clientApp[i].Start(Seconds(2.0*(i+1)));
-        clientApp[i].Stop(Seconds(3.0*(i+1))); 
+    ApplicationContainer clientApps;
+    for(uint32_t i=0; i<numClients; ++i){
+        clientApps.Add(clientHelper.Install(allNodes.Get(i+1))); //instala app no node[i+1]
     }
+
+    clientApps.Start(Seconds(2.0));
+    clientApps.Stop(Seconds(10.0));
+
     
     // // --- NETANIM --- //
-    // NS_LOG_INFO("Set animation.");
-    // AnimationInterface anim ("udp-20-clients-server-anim.xml");
+    NS_LOG_INFO("Set animation.");
+    AnimationInterface anim ("udp-20-clients-server-anim2.xml");
 
-    // anim.SetConstantPosition(serverNode.Get(0), 300, 300); //node 0
-    // uint32_t x = 0, y = 0;
-    // for(uint32_t i=0; i<numClients; ++i){
-    //     x = (200 + 10*i);
-    //     y = (i <= 9) ? (300 + 10*i) : (490 - 10*i);
-    //     anim.SetConstantPosition(clientNodes.Get(i), x, y); //gera uma semi-circunferencia 
-    // }
+    anim.SetConstantPosition(allNodes.Get(0), 300, 300); //node 0
+    uint32_t x = 0, y = 0;
+    for(uint32_t i=0; i<numClients; ++i){
+        x = (200 + 10*i);
+        y = (i <= 9) ? (300 + 10*i) : (490 - 10*i);
+        anim.SetConstantPosition(allNodes.Get(i+1), x, y); 
+    }
 
     // --- EXECUCAO --- //
     NS_LOG_INFO("Run simulation.");
